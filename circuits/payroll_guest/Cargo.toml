@@ -10,3 +10,9 @@ light-poseidon = "0.2.0"
 ark-ff = "0.4.0"
 ark-bn254 = "0.4.0"
 sha2 = "0.10"
+
+[[bin]]
+name = "payroll_guest"
+path = "src/main.rs"
+test = false
+bench = false

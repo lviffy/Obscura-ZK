@@ -94,5 +94,5 @@ fn main() {
     let recipients_hash: [u8; 32] = sha.finalize().into();
     journal_bytes[48..80].copy_from_slice(&recipients_hash);
 
-    env::commit(&journal_bytes);
+    env::commit(&journal_bytes.to_vec());
 }

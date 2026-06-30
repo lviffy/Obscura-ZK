@@ -1,26 +1,80 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* ─── THEME (registers vars so Tailwind v4 resolves arbitrary var() classes) ─── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans:    var(--font-geist-sans);
+  --font-mono:    var(--font-geist-mono);
+
+  --color-bg:      #09090b;
+  --color-surface: #18181b;
+  --color-border:  #27272a;
+  --color-text:    #fafafa;
+  --color-muted:   #a1a1aa;
+  --color-mono:    #d4d4d8;
+  --color-accent:  #e5ff47;
+  --color-accent-h:#d4ee36;
+  --color-error:   #f87171;
+  --color-success: #4ade80;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── TOKENS (runtime CSS vars for inline styles) ─────────── */
+:root {
+  --bg:         #09090b;
+  --surface:    #18181b;
+  --border:     #27272a;
+  --text:       #fafafa;
+  --muted:      #a1a1aa;
+  --mono:       #d4d4d8;
+  --accent:     #e5ff47;
+  --accent-h:   #d4ee36;
+  --error:      #f87171;
+  --success:    #4ade80;
+  --radius-btn: 2px;
+}
+
+/* ─── RESET ───────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #09090b;
+  color: #fafafa;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  min-height: 100dvh;
+}
+
+/* ─── SELECTION ───────────────────────────────────────────── */
+::selection {
+  background: #e5ff47;
+  color: #09090b;
+}
+
+/* ─── SCROLLBAR ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #09090b; }
+::-webkit-scrollbar-thumb { background: #27272a; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+
+/* ─── FOCUS RING ──────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #e5ff47;
+  outline-offset: 2px;
+}
+
+/* ─── REDUCED MOTION ──────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
