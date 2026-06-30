@@ -4,6 +4,11 @@ import { useState } from "react";
 import ZKConsole from "../hero/ZKConsole";
 import { Lock } from "@phosphor-icons/react";
 import { T } from "@/lib/tokens";
+import { useWallet } from "@/hooks/useWallet";
+import { provePayroll } from "@/lib/zkProver";
+import { invokeSorobanContract } from "@/lib/soroban";
+import { PRIVATE_TREASURY_ID } from "@/lib/contracts";
+import { LogEntry } from "@/lib/types";
 
 interface Props { credentialNullifier: string | null; }
 
@@ -12,19 +17,67 @@ GBZXN7PIRZGNMHGA7S4GS4E5RJVL7DWD5GVPXHMJVVVQ3DXEAADGXY, 1200
 GDSVO7GGKJNVKGCPGKIXBXPHZXAXMVYXMPNMJK7JXFXMM4E7BKGYKWK, 650`;
 
 export default function PayrollFlow({ credentialNullifier }: Props) {
+  const { address, connectWallet } = useWallet();
   const [csv, setCsv] = useState("");
   const [status, setStatus] = useState<"idle" | "proving" | "done">("idle");
   const [total, setTotal] = useState(0);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const locked = !credentialNullifier;
 
-  function handleRun() {
+  async function handleRun() {
+    let activeAddress = address;
+    if (!activeAddress) {
+      activeAddress = await connectWallet();
+      if (!activeAddress) return;
+    }
+    
     setStatus("proving");
-    const sum = csv.split("\n")
+    setLogs([{ label: "system", text: "Initializing private payroll batch..." }]);
+    
+    const inputCsv = csv.trim() || DEMO_CSV;
+    const sum = inputCsv.split("\n")
       .map((l) => Number(l.split(",")[1]?.trim()))
       .filter((n) => !isNaN(n))
       .reduce((a, b) => a + b, 0);
     setTotal(sum);
-    setTimeout(() => setStatus("done"), 5000);
+    
+    const result = await provePayroll(inputCsv, 5000);
+    setLogs(result.logs);
+    
+    if (!result.success || !result.proof) {
+      setStatus("idle");
+      return;
+    }
+    
+    // Invoke Soroban execute_payroll
+    setLogs((prev) => [...prev, { label: "soroban", text: "Broadcasting execute_payroll transaction to testnet..." }]);
+    
+    const callResult = await invokeSorobanContract(
+      PRIVATE_TREASURY_ID,
+      "execute_payroll",
+      [
+        Buffer.from(result.proof.risc0Receipt.replace("0x", ""), "hex"),
+        Buffer.from("00".repeat(80), "hex"), // 80 bytes journal
+        result.proof.noirTransferProofs.map(p => Buffer.from(p.replace("0x", ""), "hex"))
+      ],
+      activeAddress
+    );
+    
+    if (callResult.success) {
+      setLogs((prev) => [
+        ...prev,
+        { label: "soroban", text: "Verification Succeeded!" },
+        { label: "soroban", text: `Tx Hash: ${callResult.txHash}` },
+        { label: "system", text: "Confidential payroll batch fully processed!" }
+      ]);
+      setStatus("done");
+    } else {
+      setLogs((prev) => [
+        ...prev,
+        { label: "soroban", text: `Verification Failed: ${callResult.error}` }
+      ]);
+      setStatus("idle");
+    }
   }
 
   const recipients = csv.split("\n").filter(Boolean);
@@ -164,7 +217,7 @@ export default function PayrollFlow({ credentialNullifier }: Props) {
                 </div>
               )}
 
-              {status === "proving" && <ZKConsole lines={6} autoplay />}
+              {(status === "proving" || status === "done") && <ZKConsole lines={6} autoplay={false} logs={logs} />}
 
               {status === "done" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

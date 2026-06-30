@@ -5,6 +5,11 @@ import { AnimatePresence, motion } from "motion/react";
 import ZKConsole from "../hero/ZKConsole";
 import { Lock } from "@phosphor-icons/react";
 import { T } from "@/lib/tokens";
+import { useWallet } from "@/hooks/useWallet";
+import { proveVote } from "@/lib/zkProver";
+import { invokeSorobanContract } from "@/lib/soroban";
+import { PRIVATE_GOVERNANCE_ID } from "@/lib/contracts";
+import { LogEntry } from "@/lib/types";
 
 interface Props { credentialNullifier: string | null; }
 
@@ -17,9 +22,11 @@ const PROPOSALS = [
 interface Tally { yes: number; no: number; }
 
 export default function VotingFlow({ credentialNullifier }: Props) {
+  const { address, connectWallet } = useWallet();
   const [selected, setSelected] = useState<string | null>(null);
   const [choice, setChoice] = useState<"yes" | "no" | null>(null);
   const [status, setStatus] = useState<"idle" | "proving" | "done">("idle");
+  const [logs, setLogs] = useState<LogEntry[]>([]);
   const [tally, setTally] = useState<Record<string, Tally>>({
     p1: { yes: 14, no: 3 },
     p2: { yes: 9,  no: 2 },
@@ -30,10 +37,60 @@ export default function VotingFlow({ credentialNullifier }: Props) {
   const locked = !credentialNullifier;
   const currentProposal = PROPOSALS.find((p) => p.id === selected);
 
-  function handleVote() {
+  async function handleVote() {
     if (!selected || !choice || status === "proving") return;
+    
+    let activeAddress = address;
+    if (!activeAddress) {
+      activeAddress = await connectWallet();
+      if (!activeAddress) return;
+    }
+    
     setStatus("proving");
-    setTimeout(() => {
+    setLogs([{ label: "system", text: "Initializing private vote..." }]);
+    
+    const proposalNum = selected === "p1" ? 1n : selected === "p2" ? 2n : 3n;
+    
+    const result = await proveVote(12345, Number(proposalNum), choice === "yes" ? 1 : 0);
+    setLogs(result.logs);
+    
+    if (!result.success || !result.proof) {
+      setStatus("idle");
+      return;
+    }
+    
+    // Invoke Soroban vote
+    setLogs((prev) => [...prev, { label: "soroban", text: "Broadcasting vote transaction to testnet..." }]);
+    
+    const callResult = await invokeSorobanContract(
+      PRIVATE_GOVERNANCE_ID,
+      "vote",
+      [
+        {
+          a: Buffer.concat([Buffer.from(result.proof.proof.a[0].replace("0x",""), "hex"), Buffer.from(result.proof.proof.a[1].replace("0x",""), "hex")]),
+          b: Buffer.concat([
+            Buffer.from(result.proof.proof.b[0][1].replace("0x",""), "hex"),
+            Buffer.from(result.proof.proof.b[0][0].replace("0x",""), "hex"),
+            Buffer.from(result.proof.proof.b[1][1].replace("0x",""), "hex"),
+            Buffer.from(result.proof.proof.b[1][0].replace("0x",""), "hex"),
+          ]),
+          c: Buffer.concat([Buffer.from(result.proof.proof.c[0].replace("0x",""), "hex"), Buffer.from(result.proof.proof.c[1].replace("0x",""), "hex")]),
+        },
+        Buffer.from(result.proof.publicInputs[0].replace("0x",""), "hex"), // credential_nullifier
+        proposalNum,
+        choice === "yes" ? 1n : 0n,
+        Buffer.from(result.proof.publicInputs[3].replace("0x",""), "hex") // voting_nullifier
+      ],
+      activeAddress
+    );
+    
+    if (callResult.success) {
+      setLogs((prev) => [
+        ...prev,
+        { label: "soroban", text: "Verification Succeeded!" },
+        { label: "soroban", text: `Tx Hash: ${callResult.txHash}` },
+        { label: "system", text: "Vote cast successfully & stored on-chain!" }
+      ]);
       setTally((prev) => ({
         ...prev,
         [selected]: {
@@ -43,8 +100,14 @@ export default function VotingFlow({ credentialNullifier }: Props) {
       }));
       setVoted((prev) => new Set([...prev, selected]));
       setStatus("done");
-      setTimeout(() => { setStatus("idle"); setSelected(null); setChoice(null); }, 2500);
-    }, 4000);
+      setTimeout(() => { setStatus("idle"); setSelected(null); setChoice(null); }, 3500);
+    } else {
+      setLogs((prev) => [
+        ...prev,
+        { label: "soroban", text: `Verification Failed: ${callResult.error}` }
+      ]);
+      setStatus("idle");
+    }
   }
 
   return (
@@ -159,7 +222,7 @@ export default function VotingFlow({ credentialNullifier }: Props) {
                         ))}
                       </div>
 
-                      {status === "proving" && <ZKConsole lines={4} autoplay />}
+                      {(status === "proving" || status === "done") && <ZKConsole lines={4} autoplay={false} logs={logs} />}
                       {status === "done" && (
                         <span style={{ fontSize: 12, fontFamily: "var(--font-geist-mono), monospace", color: T.success }}>
                           Vote recorded. Nullifier sealed.

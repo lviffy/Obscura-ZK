@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { List, X } from "@phosphor-icons/react";
+import { useWallet } from "@/hooks/useWallet";
 
 // Hardcoded tokens - Tailwind v4 arbitrary var() needs @theme registration
 const T = {
@@ -17,6 +18,7 @@ const T = {
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const { address, connecting, connectWallet, disconnectWallet } = useWallet();
 
   const links = [
     { href: "#credentials", label: "Credentials" },
@@ -72,24 +74,44 @@ export default function Navbar() {
 
           {/* CTA + mobile toggle */}
           <div className="flex items-center gap-4">
-            <a
-              href="#credentials"
-              id="nav-connect-wallet"
-              className="hidden md:inline-flex items-center px-4 py-2 text-[11px] font-mono uppercase tracking-widest transition-all duration-150 active:scale-[0.98]"
-              style={{
-                backgroundColor: T.accent,
-                color: T.bg,
-                borderRadius: "2px",
-              }}
-              onMouseEnter={(e) =>
-                ((e.currentTarget as HTMLElement).style.backgroundColor = T.accentH)
-              }
-              onMouseLeave={(e) =>
-                ((e.currentTarget as HTMLElement).style.backgroundColor = T.accent)
-              }
-            >
-              Connect Wallet
-            </a>
+            {address ? (
+              <button
+                id="nav-connect-wallet"
+                onClick={disconnectWallet}
+                className="hidden md:inline-flex items-center px-4 py-2 text-[11px] font-mono uppercase tracking-widest transition-all duration-150 active:scale-[0.98]"
+                style={{
+                  backgroundColor: T.surface,
+                  border: `1px solid ${T.border}`,
+                  color: T.text,
+                  borderRadius: "2px",
+                  cursor: "pointer",
+                }}
+              >
+                {address.slice(0, 4)}...{address.slice(-4)}
+              </button>
+            ) : (
+              <button
+                id="nav-connect-wallet"
+                onClick={connectWallet}
+                disabled={connecting}
+                className="hidden md:inline-flex items-center px-4 py-2 text-[11px] font-mono uppercase tracking-widest transition-all duration-150 active:scale-[0.98]"
+                style={{
+                  backgroundColor: T.accent,
+                  color: T.bg,
+                  borderRadius: "2px",
+                  cursor: "pointer",
+                  border: "none",
+                }}
+                onMouseEnter={(e) => {
+                  if (!connecting) (e.currentTarget as HTMLElement).style.backgroundColor = T.accentH;
+                }}
+                onMouseLeave={(e) => {
+                  if (!connecting) (e.currentTarget as HTMLElement).style.backgroundColor = T.accent;
+                }}
+              >
+                {connecting ? "Connecting..." : "Connect Wallet"}
+              </button>
+            )}
             <button
               onClick={() => setOpen((p) => !p)}
               className="md:hidden transition-colors"
@@ -119,14 +141,24 @@ export default function Navbar() {
               {l.label}
             </a>
           ))}
-          <a
-            href="#credentials"
-            onClick={() => setOpen(false)}
-            className="mt-4 inline-flex items-center px-4 py-3 text-xs font-mono uppercase tracking-widest w-fit"
-            style={{ backgroundColor: T.accent, color: T.bg, borderRadius: "2px" }}
-          >
-            Connect Wallet
-          </a>
+          {address ? (
+            <button
+              onClick={() => { disconnectWallet(); setOpen(false); }}
+              className="mt-4 inline-flex items-center px-4 py-3 text-xs font-mono uppercase tracking-widest w-fit text-left"
+              style={{ backgroundColor: T.surface, border: `1px solid ${T.border}`, color: T.text, borderRadius: "2px" }}
+            >
+              {address.slice(0, 6)}...{address.slice(-6)} (Disconnect)
+            </button>
+          ) : (
+            <button
+              onClick={() => { connectWallet(); setOpen(false); }}
+              disabled={connecting}
+              className="mt-4 inline-flex items-center px-4 py-3 text-xs font-mono uppercase tracking-widest w-fit text-left"
+              style={{ backgroundColor: T.accent, color: T.bg, borderRadius: "2px", border: "none" }}
+            >
+              {connecting ? "Connecting..." : "Connect Wallet"}
+            </button>
+          )}
         </div>
       )}
     </>

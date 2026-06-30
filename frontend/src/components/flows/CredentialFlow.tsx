@@ -4,31 +4,82 @@ import { useState } from "react";
 import ZKConsole from "../hero/ZKConsole";
 import { CheckCircle, Lock } from "@phosphor-icons/react";
 import { T } from "@/lib/tokens";
+import { useWallet } from "@/hooks/useWallet";
+import { proveCredential } from "@/lib/zkProver";
+import { invokeSorobanContract } from "@/lib/soroban";
+import { ZK_CREDENTIAL_ID } from "@/lib/contracts";
+import { LogEntry } from "@/lib/types";
 
 interface Credential { nullifier: string; issuedAt: string; }
 interface Props { onCredentialIssued: (c: Credential) => void; }
 
 export default function CredentialFlow({ onCredentialIssued }: Props) {
+  const { address, connectWallet } = useWallet();
   const [balance, setBalance] = useState("");
   const [member, setMember] = useState(false);
   const [age, setAge] = useState(false);
   const [status, setStatus] = useState<"idle" | "proving" | "done">("idle");
   const [credential, setCredential] = useState<Credential | null>(null);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
 
   const canProve = balance !== "" && Number(balance) >= 0;
 
-  function handleGenerate() {
+  async function handleGenerate() {
     if (!canProve) return;
+    
+    let activeAddress = address;
+    if (!activeAddress) {
+      activeAddress = await connectWallet();
+      if (!activeAddress) return;
+    }
+    
     setStatus("proving");
-    setTimeout(() => {
+    setLogs([{ label: "system", text: "Starting ZK Credential generation..." }]);
+    
+    const result = await proveCredential(Number(balance), age ? 21 : 16, 12345);
+    setLogs(result.logs);
+    
+    if (!result.success || !result.proof) {
+      setStatus("idle");
+      return;
+    }
+    
+    // Invoke Soroban verify_credential
+    setLogs((prev) => [...prev, { label: "soroban", text: "Broadcasting verify_credential call to testnet..." }]);
+    
+    const callResult = await invokeSorobanContract(
+      ZK_CREDENTIAL_ID,
+      "verify_credential",
+      [
+        Buffer.from(result.proof.proofBytes.replace("0x", ""), "hex"),
+        Buffer.from(result.proof.publicInputsBytes.replace("0x", ""), "hex"),
+        BigInt(balance),
+        age ? 18n : 0n
+      ],
+      activeAddress
+    );
+    
+    if (callResult.success) {
+      setLogs((prev) => [
+        ...prev,
+        { label: "soroban", text: "Verification Succeeded!" },
+        { label: "soroban", text: `Tx Hash: ${callResult.txHash}` },
+        { label: "system", text: "Credential successfully registered on-chain!" }
+      ]);
       const cred: Credential = {
-        nullifier: "0x7f3a8c2e91d4b6f05a3e7c1b" + Math.floor(Math.random() * 0xffff).toString(16).padStart(4, "0"),
+        nullifier: result.proof.nullifier,
         issuedAt: new Date().toISOString(),
       };
       setCredential(cred);
       setStatus("done");
       onCredentialIssued(cred);
-    }, 4500);
+    } else {
+      setLogs((prev) => [
+        ...prev,
+        { label: "soroban", text: `Verification Failed: ${callResult.error}` }
+      ]);
+      setStatus("idle");
+    }
   }
 
   const CHECKS = [
@@ -169,7 +220,7 @@ export default function CredentialFlow({ onCredentialIssued }: Props) {
                 ))}
               </div>
 
-              {status === "proving" && <ZKConsole lines={6} autoplay />}
+              {status === "proving" && <ZKConsole lines={6} autoplay={false} logs={logs} />}
               {status === "idle" && (
                 <div
                   style={{

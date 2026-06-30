@@ -32,15 +32,20 @@ const LABEL_HEX: Record<string, string> = {
 interface ZKConsoleProps {
   lines?: number;
   autoplay?: boolean;
+  logs?: Array<{ label: string; text: string }>;
 }
 
-export default function ZKConsole({ lines = 8, autoplay = true }: ZKConsoleProps) {
+export default function ZKConsole({ lines = 8, autoplay = true, logs }: ZKConsoleProps) {
   const reduce = useReducedMotion();
   const [displayed, setDisplayed] = useState<typeof STEPS>([]);
   const [cursor, setCursor] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (logs) {
+      setDisplayed(logs.slice(-lines));
+      return;
+    }
     if (reduce || !autoplay) {
       setDisplayed(STEPS.slice(0, lines));
       return;
@@ -51,7 +56,7 @@ export default function ZKConsole({ lines = 8, autoplay = true }: ZKConsoleProps
     }, 900);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reduce, autoplay, lines, cursor]);
+  }, [reduce, autoplay, lines, cursor, logs]);
 
   useEffect(() => {
     if (containerRef.current)
