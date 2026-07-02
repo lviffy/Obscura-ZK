@@ -105,9 +105,9 @@ function stellarPublicKeyToBytes(publicKey: string): Uint8Array {
 export async function getTallyFromSoroban(
   contractId: string,
   proposalId: number
-): Promise<[number, number]> {
+): Promise<[number, number] | null> {
   try {
-    const dummySource = "GCT5RCD76K6374I6I52A6SS6G56C4UPZ5W5W5W5W5W5W5W5W5W5W5W5W";
+    const dummySource = "GBPZ7ALCHBFXF7FNSACMJ2LSMATYPX7J6UNHEKOP6N7GPWZOYKGHJRSK";
     const account = new Account(dummySource, "0");
     const contract = new Contract(contractId);
     const operation = contract.call("get_tally", nativeToScVal(BigInt(proposalId)));
@@ -127,10 +127,10 @@ export async function getTallyFromSoroban(
         return [Number(val[0]), Number(val[1])];
       }
     }
-    return [0, 0];
-  } catch (err) {
-    console.error(`Failed to get tally for proposal ${proposalId}:`, err);
-    return [0, 0];
+    return null;
+  } catch (err: any) {
+    console.warn(`Failed to get tally for proposal ${proposalId} from Soroban RPC:`, err?.message || err);
+    return null;
   }
 }
 

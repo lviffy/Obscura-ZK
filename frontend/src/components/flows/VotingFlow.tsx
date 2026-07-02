@@ -45,6 +45,14 @@ export default function VotingFlow({ credentialNullifier: propNullifier }: Props
 
   async function loadTallies(list: Proposal[]) {
     const newTally: Record<string, Tally> = {};
+    const savedTallies = localStorage.getItem("dao_local_tallies");
+    let localTallies: Record<string, Tally> = {};
+    try {
+      localTallies = savedTallies ? JSON.parse(savedTallies) : {};
+    } catch (e) {
+      console.warn("Failed to parse local tallies, resetting cache", e);
+    }
+
     for (const p of list) {
       let numericId = 0;
       if (p.id.startsWith("p")) {
@@ -55,9 +63,16 @@ export default function VotingFlow({ credentialNullifier: propNullifier }: Props
       if (isNaN(numericId)) {
         numericId = 1;
       }
-      const [noVotes, yesVotes] = await getTallyFromSoroban(PRIVATE_GOVERNANCE_ID, numericId);
-      newTally[p.id] = { yes: yesVotes, no: noVotes };
+      const result = await getTallyFromSoroban(PRIVATE_GOVERNANCE_ID, numericId);
+      if (result) {
+        const [noVotes, yesVotes] = result;
+        newTally[p.id] = { yes: yesVotes, no: noVotes };
+        localTallies[p.id] = { yes: yesVotes, no: noVotes };
+      } else {
+        newTally[p.id] = localTallies[p.id] || { yes: 0, no: 0 };
+      }
     }
+    localStorage.setItem("dao_local_tallies", JSON.stringify(localTallies));
     setTally(newTally);
   }
 
@@ -92,6 +107,15 @@ export default function VotingFlow({ credentialNullifier: propNullifier }: Props
       const updatedList = [...proposals, newProp];
       setProposals(updatedList);
       localStorage.setItem("dao_proposals", JSON.stringify(updatedList));
+      
+      const savedTallies = localStorage.getItem("dao_local_tallies");
+      let localTallies: Record<string, Tally> = {};
+      try {
+        localTallies = savedTallies ? JSON.parse(savedTallies) : {};
+      } catch (e) {}
+      localTallies[id] = { yes: 0, no: 0 };
+      localStorage.setItem("dao_local_tallies", JSON.stringify(localTallies));
+
       setTally((prev) => ({ ...prev, [id]: { yes: 0, no: 0 } }));
       setNewTitle("");
       setNewDesc("");
@@ -160,7 +184,22 @@ export default function VotingFlow({ credentialNullifier: propNullifier }: Props
         { label: "system", text: "Vote cast successfully & stored on-chain!" }
       ]);
       
-      // Reload tallies from contract
+      // Update local tally immediately
+      const savedTallies = localStorage.getItem("dao_local_tallies");
+      let localTallies: Record<string, Tally> = {};
+      try {
+        localTallies = savedTallies ? JSON.parse(savedTallies) : {};
+      } catch (e) {}
+      const current = localTallies[selected] || { yes: 0, no: 0 };
+      if (choice === "yes") {
+        current.yes += 1;
+      } else {
+        current.no += 1;
+      }
+      localTallies[selected] = current;
+      localStorage.setItem("dao_local_tallies", JSON.stringify(localTallies));
+
+      // Reload tallies from contract (will fallback to local cache if fetch fails)
       await loadTallies(proposals);
       
       setVoted((prev) => new Set([...prev, selected]));

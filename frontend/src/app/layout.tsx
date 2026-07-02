@@ -32,6 +32,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable}`}
+      suppressHydrationWarning
     >
       <body className="min-h-[100dvh] flex flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
         {children}
