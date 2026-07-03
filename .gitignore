@@ -25,3 +25,5 @@ node_modules
 .idea/
 .vscode/
 *.log
+pitch_script.md
+dorahacks_submission.md
