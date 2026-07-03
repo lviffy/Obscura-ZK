@@ -70,7 +70,7 @@ export async function proveCredential(
 export async function provePayroll(
   csvContent: string,
   budgetCap: number
-): Promise<ProofResult<{ risc0Receipt: string; noirTransferProofs: string[] }>> {
+): Promise<ProofResult<{ risc0Receipt: string; noirTransferProofs: string[]; amountCommitments: string[] }>> {
   const logs: LogEntry[] = [];
   logs.push({ label: "risc0", text: "loading csv file..." });
   
@@ -114,6 +114,7 @@ export async function provePayroll(
     proof: {
       risc0Receipt: "0x" + "c".repeat(400),
       noirTransferProofs: lines.map(() => "0x" + "d".repeat(500)),
+      amountCommitments: lines.map(() => "0x" + "d".repeat(64)),
     },
     publicInputs: [total.toString()],
     logs,

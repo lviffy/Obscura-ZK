@@ -123,7 +123,7 @@ export default function PayrollFlow({ credentialNullifier: propNullifier }: Prop
       [
         Buffer.from(result.proof.risc0Receipt.replace("0x", ""), "hex"),
         Buffer.from("00".repeat(80), "hex"), // 80 bytes journal
-        result.proof.noirTransferProofs.map(p => Buffer.from(p.replace("0x", ""), "hex"))
+        result.proof.amountCommitments.map(p => Buffer.from(p.replace("0x", ""), "hex"))
       ],
       activeAddress
     );

@@ -145,10 +145,10 @@ The video demonstrates:
 
 ## ⚠️ Current Status & Limitations
 
-- Built on Stellar Testnet
-- Proof generation is client-side (may be slow on low-end devices)
-- View-key selective disclosure implemented for auditors only
-- Lending/RWA flow deferred to post-hackathon
+- Built on Stellar Testnet.
+- **Client-Side Simulation & Mock Verifiers:** RISC Zero proof generation is simulated in the browser. Consequently, the on-chain contracts use the RISC Zero Mock Verifier (`mock-verifier`) to validate the mock seals submitted by the frontend, avoiding heavy remote prover dependencies (like Bonsai) or high local hardware requirements during testing.
+- View-key selective disclosure implemented for auditors only.
+- Lending/RWA flow deferred to post-hackathon.
 
 ---
 

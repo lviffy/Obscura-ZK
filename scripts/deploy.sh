@@ -67,7 +67,17 @@ cargo build \
     --target wasm32v1-none \
     --release 2>&1
 
-for wasm in zk_credential private_governance private_treasury; do
+# Build RISC Zero mock verifier contract
+cargo build \
+    --manifest-path lib/stellar-risc0-verifier/Cargo.toml \
+    --package mock-verifier \
+    --target wasm32v1-none \
+    --release 2>&1
+
+# Copy mock verifier WASM to target/wasm32v1-none/release
+cp lib/stellar-risc0-verifier/target/wasm32v1-none/release/mock_verifier.wasm "$WASM_DIR/mock_verifier.wasm"
+
+for wasm in zk_credential private_governance private_treasury mock_verifier; do
     WASM_PATH="$WASM_DIR/${wasm}.wasm"
     if [ ! -f "$WASM_PATH" ]; then
         echo "ERROR: $WASM_PATH not found after build"
@@ -126,6 +136,26 @@ if [ -z "$ZK_CRED_ID" ]; then
     exit 1
 fi
 echo "    zk_credential    : $ZK_CRED_ID"
+
+# ---------------------------------------------------------------------------
+# STEP A2: Deploy mock_verifier
+# ---------------------------------------------------------------------------
+echo ""
+echo "[5b] Deploying mock_verifier..."
+MOCK_VERIFIER_RAW=$("$STELLAR" contract deploy \
+    --wasm "$WASM_DIR/mock_verifier.wasm" \
+    --source "$DEPLOYER_ALIAS" \
+    --network "$NETWORK" \
+    -- \
+    --selector "cccccccc" 2>&1)
+echo "$MOCK_VERIFIER_RAW"
+MOCK_VERIFIER_ID=$(echo "$MOCK_VERIFIER_RAW" | grep -oE 'C[A-Z0-9]{55}' | tail -1)
+
+if [ -z "$MOCK_VERIFIER_ID" ]; then
+    echo "ERROR: Could not extract mock_verifier contract address"
+    exit 1
+fi
+echo "    mock_verifier    : $MOCK_VERIFIER_ID"
 
 # ---------------------------------------------------------------------------
 # STEP B: Deploy private_governance + initialize
@@ -197,7 +227,7 @@ echo "    Initializing private_treasury..."
     -- initialize \
     --token "$NATIVE_XLM_SAC" \
     --zk_credential "$ZK_CRED_ID" \
-    --risc0_verifier "$ZK_CRED_ID" \
+    --risc0_verifier "$MOCK_VERIFIER_ID" \
     --risc0_image_id "$DUMMY_IMAGE_ID" \
     --noir_vk "$DUMMY_VK_HEX" 2>&1
 echo "    initialized."

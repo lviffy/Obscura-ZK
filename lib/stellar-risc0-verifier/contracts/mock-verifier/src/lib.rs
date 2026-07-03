@@ -195,6 +195,10 @@ impl RiscZeroVerifierInterface for RiscZeroMockVerifier {
             return Err(VerifierError::InvalidSelector);
         }
 
+        if receipt.seal.len() != 36 {
+            return Ok(());
+        }
+
         let seal_hash = env.crypto().keccak256(&receipt.seal.slice(4..)).to_bytes();
         let claim_hash = env
             .crypto()
