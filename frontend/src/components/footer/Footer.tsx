@@ -27,14 +27,14 @@ export default function Footer() {
               <path d="M10 0L20 5V13C20 18.523 15.523 23 10 23C4.477 23 0 18.523 0 13V5L10 0Z" fill={T.accent} />
               <path d="M10 6L14 8.5V12.5C14 15.261 12.209 17.5 10 17.5C7.791 17.5 6 15.261 6 12.5V8.5L10 6Z" fill={T.bg} />
             </svg>
-            <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Stellar Shield</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: T.text }}>Obscura</span>
           </div>
           <p style={{ fontSize: 14, color: T.muted, maxWidth: 320, lineHeight: 1.6 }}>
             Built for Stellar Hacks: Real-World ZK. Privacy-first finance and
             governance on Stellar Soroban.
           </p>
           <p style={{ fontSize: 12, fontFamily: "var(--font-geist-mono), monospace", color: T.border, marginTop: 8 }}>
-            &copy; 2026 Stellar Shield. Open source.
+            &copy; 2026 Obscura. Open source.
           </p>
         </div>
 

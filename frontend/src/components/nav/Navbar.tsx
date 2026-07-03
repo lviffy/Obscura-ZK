@@ -52,7 +52,7 @@ export default function Navbar() {
               className="text-sm font-semibold tracking-tight"
               style={{ color: T.text }}
             >
-              Stellar Shield
+              Obscura
             </span>
           </Link>
 

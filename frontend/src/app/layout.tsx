@@ -15,12 +15,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stellar Shield - Privacy-First Finance on Stellar",
+  title: "Obscura - Payroll · Voting · Credentials · Treasury · Compliance",
   description:
     "ZK credentials, private payroll, and sealed DAO votes. Verified on-chain by Soroban smart contracts using Noir, RISC Zero, and Circom.",
   openGraph: {
-    title: "Stellar Shield",
-    description: "Privacy-first ZK finance and governance on Stellar.",
+    title: "Obscura",
+    description: "Payroll · Voting · Credentials · Treasury · Compliance",
     type: "website",
   },
 };
