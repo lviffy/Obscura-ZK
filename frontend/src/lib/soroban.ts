@@ -1,4 +1,4 @@
-import { Contract, rpc, TransactionBuilder, Account, Networks, nativeToScVal, scValToNative } from "@stellar/stellar-sdk";
+import { Contract, rpc, TransactionBuilder, Account, Networks, nativeToScVal, scValToNative, TimeoutInfinite } from "@stellar/stellar-sdk";
 import { signTransaction } from "@stellar/freighter-api";
 import { SOROBAN_RPC_URL } from "./contracts";
 
@@ -52,7 +52,7 @@ export async function invokeSorobanContract(
       networkPassphrase: Networks.TESTNET,
     })
       .addOperation(operation)
-      .setTimeout(30)
+      .setTimeout(TimeoutInfinite)
       .build();
 
     // 3. Simulate first to get resource estimates and check for errors
@@ -160,7 +160,7 @@ export async function getTallyFromSoroban(
       networkPassphrase: Networks.TESTNET,
     })
       .addOperation(operation)
-      .setTimeout(30)
+      .setTimeout(TimeoutInfinite)
       .build();
 
     const response = await server.simulateTransaction(tx);

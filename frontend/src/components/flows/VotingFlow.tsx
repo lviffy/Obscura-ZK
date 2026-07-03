@@ -188,10 +188,10 @@ export default function VotingFlow({ credentialNullifier: propNullifier }: Props
       new xdr.ScMapEntry({
         key: xdr.ScVal.scvSymbol("b"),
         val: xdr.ScVal.scvBytes(Buffer.concat([
-          Buffer.from(result.proof.proof.b[0][1].replace("0x",""), "hex"),
           Buffer.from(result.proof.proof.b[0][0].replace("0x",""), "hex"),
-          Buffer.from(result.proof.proof.b[1][1].replace("0x",""), "hex"),
-          Buffer.from(result.proof.proof.b[1][0].replace("0x",""), "hex")
+          Buffer.from(result.proof.proof.b[0][1].replace("0x",""), "hex"),
+          Buffer.from(result.proof.proof.b[1][0].replace("0x",""), "hex"),
+          Buffer.from(result.proof.proof.b[1][1].replace("0x",""), "hex")
         ]))
       }),
       new xdr.ScMapEntry({

@@ -11,6 +11,7 @@ import { ZK_CREDENTIAL_ID } from "@/lib/contracts";
 import { LogEntry } from "@/lib/types";
 
 import { useCredential } from "@/hooks/useCredential";
+import { xdr } from "@stellar/stellar-sdk";
 
 interface Credential { nullifier: string; issuedAt: string; }
 interface Props { onCredentialIssued?: (c: Credential) => void; }
@@ -49,14 +50,25 @@ export default function CredentialFlow({ onCredentialIssued }: Props) {
     // Invoke Soroban verify_credential
     setLogs((prev) => [...prev, { label: "soroban", text: "Broadcasting verify_credential call to testnet..." }]);
     
+    const proofBytesScVal = xdr.ScVal.scvBytes(
+      Buffer.from(result.proof.proofBytes.replace("0x", ""), "hex")
+    );
+    const publicInputsScVal = xdr.ScVal.scvBytes(
+      Buffer.from(result.proof.publicInputsBytes.replace("0x", ""), "hex")
+    );
+    const minBalanceScVal = xdr.ScVal.scvU64(
+      xdr.Uint64.fromString(balance.toString())
+    );
+    const minAgeScVal = xdr.ScVal.scvU32(age ? 18 : 0);
+
     const callResult = await invokeSorobanContract(
       ZK_CREDENTIAL_ID,
       "verify_credential",
       [
-        Buffer.from(result.proof.proofBytes.replace("0x", ""), "hex"),
-        Buffer.from(result.proof.publicInputsBytes.replace("0x", ""), "hex"),
-        BigInt(balance),
-        age ? 18n : 0n
+        proofBytesScVal,
+        publicInputsScVal,
+        minBalanceScVal,
+        minAgeScVal
       ],
       activeAddress
     );

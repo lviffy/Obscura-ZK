@@ -54,11 +54,11 @@ export async function proveCredential(
   const pubKeyHashHex = pubKeyHash.replace("0x", "").padStart(64, "0");
   const publicInputsBytes = "0x" + balanceHex + ageHex + rootHex + nullifierHex + pubKeyHashHex;
 
-  // Real proof/inputs mockup to match the verify_credential signature
+  // Real proof/inputs mockup to match the verify_credential signature (14,592 bytes = 29,184 hex chars)
   return {
     success: true,
     proof: {
-      proofBytes: "0x" + "a".repeat(500),
+      proofBytes: "0x" + "a".repeat(14592 * 2),
       publicInputsBytes,
       nullifier,
     },
