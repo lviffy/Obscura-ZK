@@ -40,7 +40,10 @@ export async function proveCredential(
   await new Promise((resolve) => setTimeout(resolve, 1200));
   
   // High fidelity simulated outputs using Poseidon hashes matching circuit format
-  const nullifier = "0x0132013acf7f80aa59c175babe6efacaa47cbd24f81f1be462702e8d8ca34c9d";
+  const randomBytes = Array.from({ length: 32 }, () =>
+    Math.floor(Math.random() * 256).toString(16).padStart(2, "0")
+  ).join("");
+  const nullifier = "0x" + randomBytes;
   const pubKeyHash = "0x0950acb7e532ebb21176a28dee52617a5a37ce9294aab1cf603024e5b9063f9a";
   
   logs.push({ label: "noir", text: "UltraHonk proof generated (2.8 kb)" });
